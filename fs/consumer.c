@@ -7,7 +7,7 @@
 #define MAX_STRING_LENGTH 256
 
 int main(int argc, char *argv[]) {
-	char *file_in, *prefix;
+	char *file_in, *param;
 	char err[MAX_STRING_LENGTH], buffer[MAX_STRING_LENGTH];
 
 	int nread, i, fd;
@@ -15,20 +15,20 @@ int main(int argc, char *argv[]) {
 
 	// CHECK ARGS
 	if (argc < 2 || argc > 3) {
-		printf("error: %s prefix < filename \n OR \n %s prefix filename\n", argv[0], argv[0]);
+		printf("error: %s [...params] < filename \n OR \n %s [...params] filename\n", argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
 
 	else if (argc == 2) {
-		printf("invocation without filename passed...\n");
-		prefix = argv[1];
+		// Invocation without filename passed
+		param = argv[1];
 
 		// 0 Standard input (stdin)
 		fd = 0;
 	}
 	else if (argc == 3) {
-		printf("invocation with filename passed...\n");
-		prefix = argv[1];
+		// Invocation with filename passed
+		param = argv[1];
 		file_in = argv[2];
 
 		fd = open(file_in, O_RDONLY);
