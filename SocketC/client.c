@@ -39,10 +39,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	nread = 0;
-	while (argv[2][nread] != '\0')
-	{
+	while (argv[2][nread] != '\0') {
 		if ((argv[2][nread] < '0') || (argv[2][nread] > '9')) {
-			printf("Secondo argomento non intero\n");
+			printf("error: port must be an integer\n");
 			exit(2);
 		}
 		nread++;
@@ -50,7 +49,7 @@ int main(int argc, char *argv[]) {
 
 	port = atoi(argv[2]);
 	if (port < 1024 || port > 65535) {
-		printf("Porta scorretta...");
+		printf("error: incorrect port");
 		exit(2);
 	}
 
@@ -63,106 +62,93 @@ int main(int argc, char *argv[]) {
 	 * perché aprire e chiudere una connessione TCP è piuttosto oneroso.
 	 */
 	sd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sd < 0)
-	{
-		perror("apertura socket");
+	if (sd < 0) {
+		perror("socket creation");
 		exit(1);
 	}
-	printf("Client: creata la socket sd=%d\n", sd);
+	printf("Client: socket creation sd=%d\n", sd);
 
 	/* Operazione di BIND implicita nella connect */
 	if (connect(sd, (struct sockaddr_in *)&servaddr, sizeof(struct sockaddr_in)) < 0) {
 		perror("connect");
 		exit(1);
 	}
-	printf("Client: connect ok\n");
+	printf("Client: connect OK\n");
 
 	/* CORPO DEL CLIENT:
 	 ciclo di accettazione di richieste da utente ------- */
-	printf("Richiesta di eliminare una linea in un file\n");
-	printf("Nome del file, EOF per terminare: ");
+	printf("filename or EOF to quit: ");
 
-	/* ATTENZIONE!!
-	 * Cosa accade se la riga e' piu' lunga di LINE_LENGTH-1?
-	 * Stesso dicasi per le altre gets...
-	 */
 	while (gets(nome_sorg)) {
-		// Richiesta e verifica file source
-		printf("File da aprire: %s\n", nome_sorg);
+		printf("file to open: %s\n", nome_sorg);
 		if ((fd_sorg = open(nome_sorg, O_RDONLY)) < 0) {
-			perror("open file sorgente");
-			printf("Nome del file, EOF per terminare: ");
+			perror("open source file");
+			printf("filename or EOF to quit: ");
 			continue;
 		}
 
 		// richiesta e verifica file dest
-		printf("Nome del file senza la linea: ");
+		printf("dest filename: ");
 		if (gets(nome_dest) == 0) {
 			// EOF has been reached
 			break;
 		}
 		else {
 			if ((fd_dest = open(nome_dest, O_WRONLY | O_CREAT, 0644)) < 0) {
-				perror("open file destinatario");
-				printf("Nome del file, EOF per terminare: ");
+				perror("open file dest");
+				printf("filename or EOF to quit: ");
 				continue;
 			}
 			else {
-				printf("File senza la linea: %s\n", nome_dest);
+				printf("dest file: %s\n", nome_dest);
 			}
 		}
 
-		// intero da tastiera
-		printf("linea da eliminare: ");
+		printf("line to delete: ");
 		while (scanf("%d", &line) != 1) {
-			do
-			{
+			do {
 				c = getchar();
 				printf("%c ", c);
 			} while (c != '\n');
-			printf("Inserire int");
+			printf("insert an int");
 			continue;
 		}
 		gets(okstr);
-		printf("Numero linea %d \n", line);
+		printf("line number %d \n", line);
 
 		/* Invio dati al Server */
-		// Invio del numero riga
-		printf("Invio il carattere: %d\n", line);
+		printf("sending to server: %d\n", line);
 		write(sd, &line, sizeof(int));
 
-		/* INVIO DEL FILE *************************************************************************
-		 */
-		printf("Client: invio file\n");
-		while ((nread = read(fd_sorg, buff, DIM_BUFF)) > 0)
-		{
+		printf("Client: sending file\n");
+		while ((nread = read(fd_sorg, buff, DIM_BUFF)) > 0) {
 			write(sd, buff, nread);
 		}
 		// Per segnalare la fine del file non posso usare EOF (chiuderei la conessione)
 		// quindi invio uno zero binario. Questo è lecito perché assumiamo file di testo.
 		write(sd, &terminator, 1);
-		printf("Client: file inviato\n");
+		printf("Client: file sent\n");
 
-		printf("Client: ricevo e stampo file senza la linea\n");
+		printf("Client: receive and print content\n");
 		if ((nread = read(sd, &car, sizeof(char))) < 0) {
-			perror("Errore lettura file dal server");
+			perror("error: reading content from server");
 			continue;
 		}
 		while (car != terminator) {
 			write(fd_dest, &car, 1);
 			write(1, &car, 1);
 			if ((nread = read(sd, &car, sizeof(char))) < 0) {
-				perror("Errore lettura file dal server");
+				perror("error: reading content from server");
 				continue;
 			}
 		}
-		printf("\nTrasferimento terminato\n");
+		printf("\nDone!\n");
 
 		/* Chiusura file */
 		close(fd_sorg);
 		close(fd_dest);
 
-		printf("Nome del file per cui si vuole eliminare la linea, EOF per terminare: ");
+		printf("filename or EOF to quit: ");
 	} // while
 
 	close(sd);
